@@ -24,11 +24,6 @@ app.use(passport.initialize());
 //app.use(passport.session());
 // Routes
 app.use('/api/requests', requestRoutes);
-app.use('/test', (req,res)=>{
-  res.json({
-      test:"it work"
-  })
-});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
