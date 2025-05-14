@@ -38,22 +38,17 @@ const requestRoutes = require('./routes/requestRoutes');
 
 const app = express();
 
-// Improved Middleware Setup
+// Middleware
 app.use(cors());
-app.use(express.json({ limit: '10kb' })); // Limit request body size
+app.use(express.json({ limit: '10kb' }));
 app.use('/uploads', express.static('uploads'));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-
-// Enhanced Passport initialization
 app.use(passport.initialize());
 
-// Timeout middleware - مهم جداً لمنع التجميد
+// Timeout middleware
 app.use((req, res, next) => {
-  req.setTimeout(25000, () => { // 25 second timeout
-    res.status(504).json({ 
-      error: 'Request timeout',
-      message: 'The server did not receive a timely response'
-    });
+  req.setTimeout(25000, () => {
+    res.status(504).json({ error: 'Request timeout' });
   });
   next();
 });
@@ -61,54 +56,23 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/requests', requestRoutes);
 
-// Health check endpoint - للتحقق من حالة الخادم
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
-    dbState: mongoose.connection.readyState,
-    timestamp: Date.now()
+    dbState: mongoose.connection.readyState
   });
 });
 
-// Optimized MongoDB connection
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 5 seconds for initial connection
-      socketTimeoutMS: 30000, // 30 seconds for operations
-      maxPoolSize: 5, // Limit connection pool size
-      retryWrites: true,
-      w: 'majority'
-    });
-    console.log('MongoDB connected successfully');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    process.exit(1); // Exit if DB connection fails
-  }
-};
-
-// Start the server only after DB connection
-const startServer = async () => {
-  await connectDB();
-  
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
-};
-
-// Handle shutdown gracefully
-process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  console.log('MongoDB connection closed');
-  process.exit(0);
-});
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 30000,
+  maxPoolSize: 5
+})
+.then(() => console.log('MongoDB connected successfully'))
+.catch(err => console.error('MongoDB connection error:', err));
 
 module.exports = app;
-
-// Start the application
-if (process.env.NODE_ENV !== 'test') {
-  startServer();
-}
